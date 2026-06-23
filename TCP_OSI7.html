@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taller: Hackeando las Capas de Internet</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --text-color: #c9d1d9;
+            --accent-color: #00d2ff;
+            --sec-color: #238636;
+            --danger-color: #f85149;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+        .slider-container { position: relative; width: 100%; height: 100%; }
+        .slide {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px 40px 40px 40px;
+            text-align: center;
+        }
+        .slide.active { display: flex; }
+        .slide-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            max-width: 1100px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .slide-visual { flex: 1; display: flex; justify-content: center; align-items: center; }
+        .slide-text { flex: 1.5; text-align: left; }
+
+                /* Marca de agua corregida con tu imagen real */
+        .watermark {
+            position: absolute;
+            top: 25px;
+            left: 35px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            opacity: 0.85;
+            z-index: 100;
+            background: url('logo_nexus.png') no-repeat;
+            background-size: contain;
+            width: 180px; /* Tamaño optimizado para la esquina superior */
+            height: 50px;
+        }
+        /* Ocultamos los textos duplicados en CSS porque tu logo ya trae el texto integrado */
+        .watermark-text { display: none; }
+        .watermark svg { display: none; }
+
+        h1 { font-size: 3.2rem; color: var(--accent-color); margin-bottom: 20px; text-transform: uppercase; font-weight: 800; }
+        h2 { font-size: 2.5rem; color: var(--accent-color); margin-bottom: 15px; border-bottom: 2px solid var(--accent-color); padding-bottom: 10px; width: 85%; text-align: left; }
+        h3 { font-size: 1.6rem; color: #fff; margin-top: 5px; font-weight: 700; }
+        p { font-size: 1.35rem; line-height: 1.6; margin-bottom: 15px; }
+        ul, ol { text-align: left; display: inline-block; margin: 10px 0; }
+        li { font-size: 1.25rem; margin-bottom: 10px; line-height: 1.5; list-style-position: inside; }
+        strong { color: #fff; }
+        
+        .highlight-box { background-color: #161b22; border-left: 5px solid var(--sec-color); padding: 20px; border-radius: 6px; margin-top: 15px; text-align: left; width: 100%; }
+        .danger-box { background-color: #161b22; border-left: 5px solid var(--danger-color); padding: 20px; border-radius: 6px; margin-top: 15px; text-align: left; width: 100%; }
+        code { background-color: #21262d; padding: 4px 8px; border-radius: 4px; font-family: monospace; color: #ff7b72; font-size: 1.2rem; border: 1px solid #30363d; }
+        .code-block { display: block; background-color: #1f242c; padding: 15px; border: 1px solid #30363d; margin: 10px 0; text-align: left; width: 100%; border-radius: 6px; }
+        
+        .controls { position: absolute; bottom: 30px; right: 40px; display: flex; gap: 15px; z-index: 10; }
+        .btn { background-color: #21262d; color: var(--text-color); border: 1px solid #30363d; padding: 12px 24px; font-size: 1rem; border-radius: 6px; cursor: pointer; user-select: none; font-weight: bold; }
+        .btn:hover { background-color: #30363d; color: #fff; border-color: var(--accent-color); }
+        .progress-bar { position: absolute; bottom: 0; left: 0; height: 6px; background-color: var(--accent-color); width: 0%; transition: width 0.3s ease; z-index: 10; }
+        .slide-counter { position: absolute; bottom: 35px; left: 40px; font-size: 1rem; color: #8b949e; z-index: 10; }
+        kbd { background: #21262d; border: 1px solid #30363d; padding: 2px 6px; border-radius: 4px; font-size: 0.9rem; color: #fff; }
+
+        /* Código optimizado para exportar a PDF */
+        @media print {
+            body, html {
+                overflow: visible !important;
+                height: auto !important;
+                width: auto !important;
+                background-color: #0d1117 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .slider-container {
+                position: static !important;
+                height: auto !important;
+            }
+            .slide {
+                position: relative !important;
+                display: flex !important; /* Muestra todas las diapos una abajo de la otra */
+                page-break-after: always !important; /* Forza el salto de página en cada diapo */
+                break-after: page !important;
+                height: 100vh !important;
+                width: 100vw !important;
+                justify-content: center !important;
+                align-items: center !important;
+            }
+            .controls, .slide-counter, .progress-bar {
+                display: none !important; /* Oculta los botones en el PDF */
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+<!-- SVG DEL LOGO CORPORATIVO DE NEXUS OPTIMIZADO -->
+<div style="display:none;">
+    <svg id="nexus-logo" width="45" height="45" viewBox="0 0 500 500" fill="none" xmlns="http://w3.org">
+        <path d="M180 100 L250 40 M250 100 L320 40 M320 100 L390 40" stroke="#00d2ff" stroke-width="18" stroke-linecap="round"/>
+        <circle cx="180" cy="100" r="14" fill="#00d2ff"/><circle cx="250" cy="40" r="14" fill="#00d2ff"/>
+        <circle cx="250" cy="100" r="14" fill="#00d2ff"/><circle cx="320" cy="40" r="14" fill="#00d2ff"/>
+        <circle cx="320" cy="100" r="14" fill="#00d2ff"/><circle cx="390" cy="40" r="14" fill="#00d2ff"/>
+        <path d="M140 380 L140 180 L230 280 L320 180 L320 340" stroke="#00d2ff" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M140 180 L210 120" stroke="#00d2ff" stroke-width="24" stroke-linecap="round"/>
+        <circle cx="140" cy="380" r="18" fill="#fff" stroke="#00d2ff" stroke-width="8"/>
+        <path d="M140 380 L230 440" stroke="#00d2ff" stroke-width="20" stroke-linecap="round"/>
+        <circle cx="230" cy="440" r="14" fill="#00d2ff"/><circle cx="270" cy="360" r="14" fill="#00d2ff"/>
+        <circle cx="310" cy="390" r="14" fill="#00d2ff"/><circle cx="350" cy="420" r="14" fill="#00d2ff"/>
+    </svg>
+</div>
+
+<div class="slider-container">
+    
+        <!-- DIAPOSITIVA 1: PORTADA CORREGIDA -->
+    <div class="slide active">
+        <div style="margin-bottom: 25px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+            <!-- Llamada directa a tu imagen real para fidelidad del 100% -->
+            <img src="logo-nexus.jpg" alt="Nexus Cyber Academy" style="width: 250px; height: auto; border-radius: 8px; box-shadow: 0 0 20px rgba(0,210,255,0.3);">
+        </div>
+        <h1>Hackeando las Capas de Internet</h1>
+        <p style="font-size: 1.8rem; color: #fff; font-weight: 500;">Redes y Ciberseguridad desde Cero</p>
+    </div>
+
+
+    <!-- DIAPOSITIVA 2: HISTORIA -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>Parte 1: El Caos de los Años 60 y 70</h2>
+        <div class="slide-content">
+            <div class="slide-visual">
+                <svg width="180" height="180" viewBox="0 0 24 24" fill="none" stroke="#00d2ff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </div>
+            <div class="slide-text">
+                <p>Antes de crearse las reglas de comunicación global, las computadoras eran terminales aisladas.</p>
+                <ul>
+                    <li><strong>1969:</strong> Nace ARPANET, el primer proyecto descentralizado militar y científico de EE.UU.</li>
+                    <li><strong>El Gran Choque:</strong> Las computadoras corporativas (IBM, Apple, DEC) hablaban infraestructuras incompatibles.</li>
+                    <li><strong>Incomunicación:</strong> Era imposible mover flujos de datos nativos entre marcas competidoras de hardware.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <!-- DIAPOSITIVA 3: PECADO ORIGINAL -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>El Pecado Original de Internet</h2>
+        <div class="slide-content">
+            <div class="slide-visual">
+                <svg width="180" height="180" viewBox="0 0 24 24" fill="none" stroke="#f85149" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            </div>
+            <div class="slide-text">
+                <p>Las bases lógicas de Internet se diseñaron bajo entornos cerrados donde los investigadores confiaban entre sí.</p>
+                <div class="danger-box">
+                    <h3>Cero Seguridad Nativa</h3>
+                    <p style="font-size: 1.15rem; margin-top: 5px;">Al no existir cifrado ni cortafuegos nativos en su origen, los ingenieros recurrieron al <strong>Encapsulamiento</strong>: un método que segmenta el problema envolviendo los datos dentro de capas sucesivas.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIAPOSITIVA 4: MODELOS DE RED -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>El Mapa del Tesoro: OSI vs. TCP/IP</h2>
+        <div class="slide-content">
+            <div class="slide-visual">
+                <svg width="180" height="180" viewBox="0 0 24 24" fill="none" stroke="#238636" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+            </div>
+            <div class="slide-text">
+                <p>Marcos de referencia estructurados para ordenar el flujo de información a nivel mundial.</p>
+                <ul>
+                    <li><strong>Modelo OSI (7 Capas):</strong> Creado por la ISO. Es el estándar educativo para aislar funciones conceptuales detalladas.</li>
+                    <li><strong>Modelo TCP/IP (4 Capas):</strong> El estándar operativo real que ejecuta el sistema operativo para navegar en la web.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIAPOSITIVA 5: CAPA 1 CONCEPTO -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>Parte 2: Capa 1 - Física (Concepto)</h2>
+        <div class="slide-content">
+            <div class="slide-visual">
+                <svg width="180" height="180" viewBox="0 0 24 24" fill="none" stroke="#00d2ff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-4V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z"></path><path d="M14 18v3a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-3"></path></svg>
+            </div>
+            <div class="slide-text">
+                <p>Los cimientos de hardware encargados de transportar la información cruda.</p>
+                <ul>
+                    <li><strong>Función:</strong> Mover secuencias binarias (bits de 0 y 1) sobre componentes e infraestructura tangible.</li>
+                    <li><strong>Medios Físicos:</strong> Impulsos eléctricos en cables de cobre, destellos de luz en fibra óptica u ondas electromagnéticas (Wi-Fi).</li>
+                    <li><strong>Componentes:</strong> Adaptadores de red (NIC), repetidores, hubs y conectores mecánicos.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <!-- DIAPOSITIVA 6: CAPA 1 SEGURIDAD -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>Capa 1: Física (Ciberseguridad)</h2>
+        <div class="slide-content">
+            <div class="slide-visual">
+                <svg width="180" height="180" viewBox="0 0 24 24" fill="none" stroke="#f85149" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </div>
+            <div class="slide-text">
+                <p>Si un adversario adquiere proximidad manual a tus cables o enrutadores, las barreras de software caen.</p>
+                <div class="danger-box">
+                    <h3>Vectores de Intrusión de Capa Física</h3>
+                    <p style="font-size: 1.1rem; margin-bottom: 5px;">• <strong>Physical Tampering:</strong> Conectar interceptores o dispositivos físicos espías ocultos de manera directa en puertos cableados libres.</p>
+                    <p style="font-size: 1.1rem;">• <strong>Inhibidores (Wi-Fi Jamming):</strong> Dispositivos ilegales emisores de ruido de radio para neutralizar sensores inalámbricos y alarmas.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIAPOSITIVA 7: CAPA 2 CONCEPTO -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>Parte 2: Capa 2 - Enlace de Datos (Concepto)</h2>
+        <div class="slide-content">
+            <div class="slide-visual">
+                <svg width="180" height="180" viewBox="0 0 24 24" fill="none" stroke="#00d2ff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line></svg>
+            </div>
+            <div class="slide-text">
+                <p>Organización del direccionamiento local básico e identidades fijas de hardware.</p>
+                <ul>
+                    <li><strong>Función:</strong> Encapsula los bits de la Capa 1 en unidades estructuradas llamadas <strong>tramas (frames)</strong>.</li>
+                    <li><strong>Dirección MAC:</strong> Identificador único global de 48 bits quemado de fábrica en cada placa de red.</li>
+                    <li><strong>Dispositivo Central:</strong> El <strong>Switch</strong>, que aprende qué equipo está en cada puerto según su MAC.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIAPOSITIVA 8: CAPA 2 SEGURIDAD -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>Capa 2: Enlace de Datos (Ciberseguridad)</h2>
+        <div class="slide-content">
+            <div class="slide-visual">
+                <svg width="180" height="180" viewBox="0 0 24 24" fill="none" stroke="#f85149" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            </div>
+            <div class="slide-text">
+                <p>Las redes locales confían por defecto en las solicitudes de identidad. Los atacantes explotan esta premisa.</p>
+                <div class="danger-box">
+                    <h3>Manipulación de Identidades Locales</h3>
+                    <p style="font-size: 1.1rem; margin-bottom: 5px;">• <strong>MAC Spoofing:</strong> Clonar o suplantar la dirección física de un dispositivo autorizado para evadir filtros perimetrales.</p>
+                    <p style="font-size: 1.1rem;">• <strong>ARP Spoofing:</strong> Inundar la red local con mensajes falsos para engañar a los equipos haciéndoles creer que la PC del hacker es la puerta de enlace.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- DIAPOSITIVA 9: CAPA 3 CONCEPTO -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>Parte 2: Capa 3 - Red / Internet (Concepto)</h2>
+        <div class="slide-content">
+            <div class="slide-visual">
+                <svg width="180" height="180" viewBox="0 0 24 24" fill="none" stroke="#00d2ff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg>
+            </div>
+            <div class="slide-text">
+                <p>El direccionamiento global y la interconexión de múltiples redes independientes geográficamente.</p>
+                <ul>
+                    <li><strong>Función:</strong> Direccionamiento lógico y determinación de la ruta óptima para mover paquetes a nivel mundial.</li>
+                    <li><strong>Dirección IP:</strong> Identificadores dinámicos asignados por la red que cambian según tu ubicación geográfica.</li>
+                    <li><strong>Dispositivo Central:</strong> El <strong>Router</strong>, encargado de conectar el salón con la infraestructura exterior de Internet.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIAPOSITIVA 10: CAPA 3 SEGURIDAD -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>Capa 3: Red / Internet (Ciberseguridad)</h2>
+        <div class="slide-content">
+            <div class="slide-visual">
+                <svg width="180" height="180" viewBox="0 0 24 24" fill="none" stroke="#f85149" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+            </div>
+            <div class="slide-text">
+                <p>A este nivel se orquestan los ataques que buscan impactar la disponibilidad de la infraestructura.</p>
+                <div class="danger-box">
+                    <h3>Ataques Globales de Capa de Red</h3>
+                    <p style="font-size: 1.1rem; margin-bottom: 5px;">• <strong>IP Spoofing:</strong> Falsificar las cabeceras de los paquetes para enmascarar la IP real del atacante y evadir listas de bloqueo.</p>
+                    <p style="font-size: 1.1rem;">• <strong>DDoS (Denegación de Servicio):</strong> Inundar un enlace o router con pings masivos automatizados hasta agotar su ancho de banda y colapsar el sistema.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIAPOSITIVA 11: CAPA 4 CONCEPTO -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>Parte 2: Capa 4 - Transporte (Concepto)</h2>
+        <div class="slide-content">
+            <div class="slide-visual">
+                <svg width="180" height="180" viewBox="0 0 24 24" fill="none" stroke="#238636" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+            </div>
+            <div class="slide-text">
+                <p>Garantía de entrega de mensajes de extremo a extremo y asignación de aplicaciones específicas mediante <strong>Puertos</strong>.</p>
+                <ul>
+                    <li><strong>Puertos (0 al 65535):</strong> Habitaciones digitales que asocian los datos con un programa destino en la PC.</li>
+                    <li><strong>TCP:</strong> Orientado a conexión, seguro y confiable. Utiliza el saludo de 3 vías y reenvía datos perdidos.</li>
+                    <li><strong>UDP:</strong> No orientado a conexión, ultra veloz y ligero. No comprueba errores (streaming, voz IP).</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <!-- DIAPOSITIVA 12: CAPA 4 SEGURIDAD -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>Capa 4: Transporte (Ciberseguridad)</h2>
+        <div class="slide-content">
+            <div class="slide-visual">
+                <svg width="180" height="180" viewBox="0 0 24 24" fill="none" stroke="#f85149" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"></circle><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg>
+            </div>
+            <div class="slide-text">
+                <p>Los atacantes buscan puertas de comunicación desprotegidas en los servicios del sistema operativo.</p>
+                <div class="danger-box">
+                    <h3>Vectores de Ataque en Transporte</h3>
+                    <p style="font-size: 1.1rem; margin-bottom: 5px;">• <strong>Escaneo de Puertos (Port Scanning):</strong> Rastreo automatizado sobre los 65,535 puertos para identificar cuáles están escuchando y qué vulnerabilidades exponen.</p>
+                    <p style="font-size: 1.1rem;">• <strong>SYN Flood:</strong> Inundación de saludos de conexión TCP falsos a medias para agotar las tablas de memoria del servidor e inutilizarlo.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIAPOSITIVA 13: CAPA 5 CONCEPTO -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>Parte 2: Capa 5 - Sesión (Concepto)</h2>
+        <div class="slide-content">
+            <div class="slide-visual">
+                <svg width="180" height="180" viewBox="0 0 24 24" fill="none" stroke="#00d2ff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </div>
+            <div class="slide-text">
+                <p>El administrador encargado de la persistencia, control del diálogo y la sincronización entre aplicaciones.</p>
+                <ul>
+                    <li><strong>Función:</strong> Establecer, mantener, coordinar y finalizar de manera limpia las conexiones lógicas de comunicación.</li>
+                    <li><strong>Puntos de Control:</strong> Permite reanudar transferencias interrumpidas o parpadeos de red en el mismo punto exacto sin empezar desde cero.</li>
+                    <li><strong>Ejemplos:</strong> Conexiones lógicas a bases de datos distribuidas, NetBIOS y autenticación de terminales remotos.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIAPOSITIVA 14: CAPA 5 SEGURIDAD -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>Capa 5: Sesión (Ciberseguridad)</h2>
+        <div class="slide-content">
+            <div class="slide-visual">
+                <svg width="180" height="180" viewBox="0 0 24 24" fill="none" stroke="#f85149" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5l-3-3"></path></svg>
+            </div>
+            <div class="slide-text">
+                <p>Si los identificadores de persistencia o los canales abiertos no expiran a tiempo, un intruso se adueñará del control.</p>
+                <div class="danger-box">
+                    <h3>Riesgos y Secuestros lógicos</h3>
+                    <p style="font-size: 1.1rem; margin-bottom: 5px;">• <strong>Session Hijacking (Secuestro de Sesión):</strong> Interceptación o robo del identificador único (Token) de sesión del usuario legítimo para operar salteándose contraseñas.</p>
+                    <p style="font-size: 1.1rem;">• <strong>MitM (Man-in-the-Middle):</strong> Intercepción activa durante la negociación inicial del canal de persistencia para clonar credenciales.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- DIAPOSITIVA 15: CAPA 6 CONCEPTO -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>Parte 2: Capa 6 - Presentación (Concepto)</h2>
+        <div class="slide-content">
+            <div class="slide-visual">
+                <svg width="180" height="180" viewBox="0 0 24 24" fill="none" stroke="#00d2ff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            </div>
+            <div class="slide-text">
+                <p>El traductor semántico y protector criptográfico encargado del formato de la información.</p>
+                <ul>
+                    <li><strong>Función:</strong> Traduce la sintaxis de la red a formatos legibles. Garantiza que dispositivos Apple o Linux se entiendan entre sí.</li>
+                    <li><strong>Tareas Base:</strong> Compresión de datos para optimizar recursos, conversión de caracteres (ASCII/UTF-8) y **Cifrado de datos**.</li>
+                    <li><strong>Estándar Esencial:</strong> SSL / TLS (los motores criptográficos detrás de las conexiones web seguras).</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIAPOSITIVA 16: CAPA 6 SEGURIDAD -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>Capa 6: Presentación (Ciberseguridad)</h2>
+        <div class="slide-content">
+            <div class="slide-visual">
+                <svg width="180" height="180" viewBox="0 0 24 24" fill="none" stroke="#f85149" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>
+            </div>
+            <div class="slide-text">
+                <p>Omitir el cifrado o utilizar algoritmos criptográficos débiles expone los secretos del sistema directamente en el cable.</p>
+                <div class="danger-box">
+                    <h3>Vulnerabilidades Criptográficas</h3>
+                    <p style="font-size: 1.1rem; margin-bottom: 5px;">• <strong>Tráfico en Texto Plano:</strong> Si los datos viajan sin cifrado (HTTP), cualquier interceptor en el Wi-Fi puede capturar contraseñas legibles en el aire.</p>
+                    <p style="font-size: 1.1rem;">• <strong>SSL Stripping:</strong> Ataque que obliga al navegador a degradar su conexión segura HTTPS a una versión HTTP común para poder espiar el flujo.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIAPOSITIVA 17: CAPA 7 CONCEPTO -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>Parte 2: Capa 7 - Aplicación (Concepto)</h2>
+        <div class="slide-content">
+            <div class="slide-visual">
+                <svg width="180" height="180" viewBox="0 0 24 24" fill="none" stroke="#238636" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line><line x1="12" y1="17" x2="12" y2="21"></line><line x1="7" y1="21" x2="17" y2="21"></line></svg>
+            </div>
+            <div class="slide-text">
+                <p>La delgada línea de contacto e interfaz directa entre los servicios de comunicación de la red y las personas.</p>
+                <ul>
+                    <li><strong>Función:</strong> Suministra servicios lógicos nativos a las aplicaciones y programas instalados por el usuario final.</li>
+                    <li><strong>Protocolos Famosos:</strong> <code>HTTPS</code> (Navegación), <code>DNS</code> (Resolución de nombres), <code>SMTP</code> (Envío de correos), <code>SSH</code> (Acceso seguro).</li>
+                    <li><strong>Interfaz:</strong> Navegadores web, clientes de correo y aplicaciones móviles de mensajería.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIAPOSITIVA 18: CAPA 7 SEGURIDAD -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>Capa 7: Aplicación (Ciberseguridad)</h2>
+        <div class="slide-content">
+            <div class="slide-visual">
+                <svg width="180" height="180" viewBox="0 0 24 24" fill="none" stroke="#f85149" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            </div>
+            <div class="slide-text">
+                <p>Al ser la capa que interactúa directamente con las personas, es la vía favorita de ataque debido a su vulnerabilidad al factor humano.</p>
+                <div class="danger-box">
+                    <h3>Explotaciones a Nivel de Aplicación</h3>
+                    <p style="font-size: 1.1rem; margin-bottom: 5px;">• <strong>Phishing:</strong> Clonación de portales legítimos para confundir al usuario e inducirlo a entregar contraseñas corporativas de forma voluntaria.</p>
+                    <p style="font-size: 1.1rem;">• <strong>Inyecciones (SQLi / XSS):</strong> Explotar campos de entrada desprotegidos en una web para insertar código malicioso y comprometer bases de datos remotas.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- DIAPOSITIVA 18.1: COMPARACIÓN ENFOQUE -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>OSI vs. TCP/IP: La Batalla del Diseño</h2>
+        <div class="slide-content">
+            <div class="slide-text" style="width: 100%;">
+                <p>Dos filosofías e ingenierías distintas creadas para resolver la conectividad informática del planeta.</p>
+                <div style="display: flex; gap: 20px; width: 100%; margin-top: 15px;">
+                    <div style="flex: 1; background-color: #161b22; padding: 25px; border-radius: 6px; border-top: 4px solid var(--accent-color); text-align: left;">
+                        <h3 style="color: var(--accent-color); margin-top:0; font-size: 1.4rem;">Modelo OSI (Teoría)</h3>
+                        <p style="font-size: 1.1rem; margin-top: 8px;">• Diseñado por la <strong>ISO</strong> como un marco educativo universal.</p>
+                        <p style="font-size: 1.1rem; margin-top: 5px;">• Estructura rígida dividida de forma estricta en <strong>7 capas</strong> detalladas.</p>
+                    </div>
+                    <div style="flex: 1; background-color: #161b22; padding: 25px; border-radius: 6px; border-top: 4px solid var(--sec-color); text-align: left;">
+                        <h3 style="color: var(--sec-color); margin-top:0; font-size: 1.4rem;">Modelo TCP/IP (Práctica)</h3>
+                        <p style="font-size: 1.1rem; margin-top: 8px;">• Diseñado por el <strong>DoD de EE.UU.</strong> para optimizar el Internet del mundo real.</p>
+                        <p style="font-size: 1.1rem; margin-top: 5px;">• Estructura compacta integrada en solo <strong>4 capas</strong> operativas.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIAPOSITIVA 18.2: MAPEO DE CAPAS -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>La Equivalencia en el Internet Real</h2>
+        <div class="slide-content">
+            <div class="slide-text" style="width: 100%;">
+                <p>¿Cómo se traducen las 7 capas teóricas a las 4 capas que corren en tu software actual?</p>
+                <div style="background-color: #1f242c; border: 1px solid #30363d; padding: 20px; border-radius: 8px; font-family: monospace; font-size: 1.2rem; text-align: left; line-height: 1.6; margin-top: 10px;">
+                    <p><span style="color: #ff7b72;">[OSI 7, 6, 5]</span> Aplicación, Presentación, Sesión 🡒 <span style="color: #7ee787; font-weight: bold;">[TCP/IP 4] APLICACIÓN</span> (HTTPS, DNS)</p>
+                    <hr style="border:0; border-top: 1px dashed #30363d; margin: 8px 0;">
+                    <p><span style="color: #ff7b72;">[OSI 4]</span> Transporte (TCP/UDP) 🡒 <span style="color: #7ee787; font-weight: bold;">[TCP/IP 3] TRANSPORTE</span> (Puertos)</p>
+                    <hr style="border:0; border-top: 1px dashed #30363d; margin: 8px 0;">
+                    <p><span style="color: #ff7b72;">[OSI 3]</span> Red (Enrutamiento) 🡒 <span style="color: #7ee787; font-weight: bold;">[TCP/IP 2] INTERNET</span> (Direcciones IP)</p>
+                    <hr style="border:0; border-top: 1px dashed #30363d; margin: 8px 0;">
+                    <p><span style="color: #ff7b72;">[OSI 2, 1]</span> Enlace, Física 🡒 <span style="color: #7ee787; font-weight: bold;">[TCP/IP 1] ACCESO A LA RED</span> (MAC, Cables)</p>
+                </div>
+                <div class="highlight-box" style="margin-top: 15px;">
+                    <p style="margin: 0; font-size:1.1rem;"><strong>💡 Analogía de Ciberseguridad:</strong> El modelo OSI es el plano arquitectónico en papel; el modelo TCP/IP es el edificio ya construido. Usamos OSI para designar el problema teórico, pero configuramos las defensas perimetrales reales sobre TCP/IP.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIAPOSITIVA 19: LABORATORIO INTRO -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>Parte 3: ¡Manos a la Terminal!</h2>
+        <div class="slide-content">
+            <div class="slide-visual">
+                <svg width="180" height="180" viewBox="0 0 24 24" fill="none" stroke="#238636" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+            </div>
+            <div class="slide-text">
+                <p>Uso de herramientas de diagnóstico y auditoría nativas en tu propio sistema operativo.</p>
+                <div class="highlight-box">
+                    <h3>Acceso Rápido al Símbolo del Sistema:</h3>
+                    <p style="margin-top: 5px;">• <strong>Windows:</strong> Presiona la tecla <kbd>Inicio</kbd>, escribe <code>cmd</code> y dale Enter.</p>
+                    <p style="margin-top: 5px;">• <strong>Mac / Linux:</strong> Abre tu buscador de aplicaciones, localiza <code>Terminal</code> y ejecútala.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIAPOSITIVA 20: EJERCICIO 1 -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>Ejercicio 1: Tu Identidad Física y Lógica</h2>
+        <div class="slide-content">
+            <div class="slide-text" style="width:100%;">
+                <p>Identificación de direccionamiento en interfaces activas de red (Capa 2 y Capa 3).</p>
+                <div class="code-block">
+                    <p style="color: #7ee787; margin:0; font-family: monospace;"># Comando en Windows (Símbolo del Sistema):</p>
+                    <code>ipconfig /all</code>
+                    <p style="color: #7ee787; margin: 15px 0 0 0; font-family: monospace;"># Comando en Mac / Linux (Terminal):</p>
+                    <code>ifconfig</code> o <code>ip a</code>
+                </div>
+                <p style="font-size: 1.15rem; color: #8b949e; margin-top: 15px;">Misión: Localiza en la salida de texto tu <strong>Dirección Física / MAC</strong> (Capa 2) y tu <strong>Dirección IPv4</strong> actual (Capa 3).</p>
+            </div>
+        </div>
+    </div>
+    <!-- DIAPOSITIVA 21: EJERCICIO 2 -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>Ejercicio 2: Auditoría de Puertos Activos</h2>
+        <div class="slide-content">
+            <div class="slide-text" style="width:100%;">
+                <p>Descubrir conexiones de red establecidas por aplicaciones en segundo plano (Capa 4).</p>
+                <div class="code-block">
+                    <p style="color: #7ee787; margin:0; font-family: monospace;"># Símbolo del sistema (Windows):</p>
+                    <code>netstat -ano</code>
+                    <p style="color: #7ee787; margin: 15px 0 0 0; font-family: monospace;"># Consola Unix (Mac / Linux):</p>
+                    <code>netstat -tun</code> o <code>ss -tulpn</code>
+                </div>
+                <p style="font-size: 1.15rem; color: #8b949e; margin-top: 15px;">Tip Técnico: Las líneas marcadas con el estado <strong>ESTABLISHED</strong> representan transmisiones activas con servidores externos en este preciso instante.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIAPOSITIVA 22: EJERCICIO 3 -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>Ejercicio 3: Interrogación DNS</h2>
+        <div class="slide-content">
+            <div class="slide-text" style="width:100%;">
+                <p>Resolución de nombres lógicos a direcciones binarias entendidas por los routers (Capa 7).</p>
+                <div class="code-block">
+                    <p style="color: #7ee787; margin:0; font-family: monospace;"># Comando universal multiplataforma:</p>
+                    <code>nslookup wikipedia.org</code>
+                </div>
+                <p style="font-size: 1.15rem; color: #8b949e; margin-top: 15px;">Misión: Descubrir la dirección IPv4 pública real que responde tras el nombre legible de la enciclopedia antes de que pase al router.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIAPOSITIVA 23: DEMO INSTRUCTOR -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>Parte 4: Demostración de Ataques en Vivo</h2>
+        <div class="slide-content">
+            <div class="slide-visual">
+                <svg width="180" height="180" viewBox="0 0 24 24" fill="none" stroke="#f85149" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><circle cx="12" cy="11" r="3"></circle><line x1="12" y1="5" x2="12" y2="8"></line></svg>
+            </div>
+            <div class="slide-text">
+                <p>Análisis y observación del tráfico de red local desde la perspectiva de una intrusión cibernética.</p>
+                <ul>
+                    <li><strong>Fase 1 (Mapeo):</strong> Escaneo automatizado de puertos TCP para encontrar ventanas de software desprotegidas.</li>
+                    <li><strong>Fase 2 (Explotación):</strong> Interceptación en texto plano de datos confidenciales sobre protocolos sin cifrado de Capa 6 (HTTP).</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIAPOSITIVA 24: JUEGO CTF -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>Parte 5: Desafío Capture The Flag (CTF)</h2>
+        <div class="slide-content">
+            <div class="slide-visual">
+                <svg width="180" height="180" viewBox="0 0 24 24" fill="none" stroke="#ff7b72" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+            </div>
+            <div class="slide-text">
+                <div class="highlight-box" style="border-left-color: var(--accent-color);">
+                    <h3>Reglas del Juego</h3>
+                    <p style="margin-top: 5px;">• Organícense en escuadrones tácticos de 3 o 4 integrantes en el salón.</p>
+                    <p style="margin-top: 5px;">• Analicen las pistas distribuidas físicamente en su Ficha de Respuestas.</p>
+                    <p style="margin-top: 5px;">• Ejecuten comandos en sus terminales para encontrar los códigos ocultos con el formato exacto <code>FLAG{...}</code>.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- DIAPOSITIVA 24.1: IPv4 vs IPv6 - AGOTAMIENTO -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>IPv4 vs. IPv6: La Crisis de Identidad de Internet</h2>
+        <div class="slide-content">
+            <div style="display: flex; gap: 20px; max-width: 950px; width: 100%;">
+                <div style="flex: 1; background-color: #161b22; padding: 25px; border-radius: 6px; border-top: 4px solid var(--accent-color); text-align: left;">
+                    <h3 style="color: var(--accent-color); margin-top:0; font-size: 1.5rem;">IPv4 (32 Bits / Decimal)</h3>
+                    <p style="font-size: 1.05rem; margin-top: 8px;">• <strong>Estructura:</strong> 4 octetos separados por puntos (Ej: <code>192.168.10.45</code>).</p>
+                    <p style="font-size: 1.05rem; margin-top: 5px;">• <strong>Espacio:</strong> 2<sup>32</sup> = <strong>4.300 millones</strong> de combinaciones posibles en total.</p>
+                    <p style="font-size: 1.05rem; color: var(--danger-color); font-weight: bold; margin-top: 8px;">• Estado: Totalmente agotadas debido a la proliferación de móviles e IoT.</p>
+                </div>
+                <div style="flex: 1; background-color: #161b22; padding: 25px; border-radius: 6px; border-top: 4px solid var(--sec-color); text-align: left;">
+                    <h3 style="color: var(--sec-color); margin-top:0; font-size: 1.5rem;">IPv6 (128 Bits / Hexadecimal)</h3>
+                    <p style="font-size: 1.05rem; margin-top: 8px;">• <strong>Estructura:</strong> 8 grupos separados por dos puntos (Ej: <code>2001:db8::1</code>).</p>
+                    <p style="font-size: 1.05rem; margin-top: 5px;">• <strong>Espacio:</strong> 2<sup>128</sup> = <strong>340 sextillones</strong> de combinaciones únicas.</p>
+                    <p style="font-size: 1.05rem; color: #7ee787; font-weight: bold; margin-top: 8px;">• Estado: Inventario masivo perenne para cada dispositivo del planeta.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIAPOSITIVA 24.2: IPv6 SEGURIDAD -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>El Cambio de Paradigma en Ciberseguridad</h2>
+        <div class="slide-content">
+            <div style="display: flex; flex-direction: column; gap: 12px; max-width: 850px; text-align: left; width:100%;">
+                <div style="background-color: #1f242c; padding: 12px; border-left: 4px solid #ff7b72; border-radius: 0 4px 4px 0;">
+                    <strong>1. Desaparición del Escudo NAT:</strong> En IPv6 el NAT desaparece de la arquitectura estándar. Cada dispositivo de tu casa u oficina tiene una IP pública global única. El Firewall de host es la única línea de defensa obligatoria.
+                </div>
+                <div style="background-color: #1f242c; padding: 12px; border-left: 4px solid #79c0ff; border-radius: 0 4px 4px 0;">
+                    <strong>2. Inmunidad Frente a Escaneos Masivos:</strong> En IPv4, un software escanea Internet en una hora. En IPv6, el espacio de una sola subred es tan colosal que un rastreo secuencial automatizado tardaría miles de años en completarse.
+                </div>
+                <div style="background-color: #1f242c; padding: 12px; border-left: 4px solid #56d364; border-radius: 0 4px 4px 0;">
+                    <strong>3. Cifrado Nativo Integrado (IPsec):</strong> A diferencia de IPv4, donde asegurar la red con IPsec es complejo y opcional, el diseño base de IPv6 incluye soporte para criptografía, autenticación e integridad de forma nativa.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIAPOSITIVA 24.3: LAB IPv6 -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>Laboratorio de Inspección: Anatomía de tu IPv6</h2>
+        <div class="slide-content">
+            <div class="slide-text" style="width:100%;">
+                <p>Auditoría rápida de prefijos en la consola para medir el alcance lógico de la máquina frente a amenazas externas.</p>
+                <div class="code-block">
+                    <p style="color: #7ee787; margin:0; font-family: monospace;"># Comando de diagnóstico en tu terminal:</p>
+                    <code>Windows: ipconfig /all  ||  Mac/Linux: ip -6 addr show</code>
+                </div>
+                <div class="highlight-box" style="margin-top: 15px;">
+                    <p>• <strong>Prefijo <code>fe80::</code> (Link-Local):</strong> Dirección interna automática. Sirve solo para comunicarse en el salón; un atacante externo no puede alcanzarla directamente de forma pública.</p>
+                    <p style="margin-top: 5px;">• <strong>Prefijo <code>2001::</code> / <code>2002::</code> (Global Unicast):</strong> Tu máquina tiene visibilidad pública y directa en Internet. Requiere inspección perimetral perenne y firewall activo.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIAPOSITIVA 24.4: DESAFÍO FLASH CORREGIDO -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>Parte 5: Desafío Flash - El Descifrador Criptográfico</h2>
+        <div class="slide-content">
+            <div class="slide-text" style="width:100%;">
+                <div class="danger-box">
+                    <p style="font-family: monospace; color:#ff7b72; margin:0; font-size: 1.2rem; text-align: center; font-weight: bold;">
+                        IP del Atacante detectada en los logs: <br>2001:0db8:0000:0000:0000:0000:0000:0001
+                    </p>
+                </div>
+                <p style="margin-top: 15px; font-weight:bold; color:var(--accent-color); font-size: 1.3rem; text-align: center;">
+                    ¿Cuál es la firma comprimida correcta que debes aplicar en la regla del Firewall perimetral?
+                </p>
+                <div style="display: flex; gap: 20px; justify-content: center; font-family: monospace; font-size:1.25rem; margin-top: 20px; width: 100%;">
+                    <div style="background: #161b22; padding: 15px 25px; border-radius: 6px; border:1px solid #30363d; color: #fff; flex: 1; max-width: 280px; text-align: center;">
+                        <strong style="color: var(--accent-color);">A)</strong> 2001:db8::1
+                    </div>
+                    <div style="background: #161b22; padding: 15px 25px; border-radius: 6px; border:1px solid #30363d; color: #fff; flex: 1; max-width: 280px; text-align: center;">
+                        <strong style="color: var(--danger-color);">B)</strong> 2001:db8:0:0:0:0:0:1
+                    </div>
+                    <div style="background: #161b22; padding: 15px 25px; border-radius: 6px; border:1px solid #30363d; color: #fff; flex: 1; max-width: 280px; text-align: center;">
+                        <strong style="color: var(--danger-color);">C)</strong> 2001:0db8::0001
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- DIAPOSITIVA 25: CONCLUSIONES -->
+    <div class="slide">
+        <div class="watermark"><svg width="35" height="35" viewBox="0 0 500 500"><use href="#nexus-logo"/></svg><div class="watermark-text">NEXUS<span>CYBER ACADEMY</span></div></div>
+        <h2>Parte 6: Las 3 Reglas de Oro</h2>
+        <div class="slide-content">
+            <div class="slide-text" style="width:100%;">
+                <p>Principios fundamentales de defensa activa para implementar en tu entorno diario y corporativo.</p>
+                <ol style="font-size:1.3rem; max-width:850px; text-align: left; margin-top: 15px;">
+                    <li style="margin-bottom: 12px;"><strong>La Seguridad es Multicapa:</strong> Un cortafuegos robusto en la red no puede contener ataques de Phishing o ingeniería social originados directamente en la Capa 7 de Aplicación.</li>
+                    <li style="margin-bottom: 12px;"><strong>Cifrado Mandatorio:</strong> Evita bajo cualquier circunstancia introducir credenciales o tokens de acceso en sitios web que carezcan de candado criptográfico HTTPS activo (Capa 6).</li>
+                    <li style="margin-bottom: 12px;"><strong>Auditoría de Host Periódica:</strong> Tu computadora es tu fortaleza digital. Utiliza herramientas de diagnóstico nativas (como <code>netstat</code>) para identificar anomalías o conexiones ocultas de malware.</li>
+                </ol>
+                <p style="color: var(--accent-color); font-weight: bold; margin-top: 30px; font-size: 1.8rem; text-align: center;">¡Muchas gracias por participar!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTROLES GLOBALES DE NAVEGACIÓN -->
+    <div class="slide-counter" id="counter">Diapositiva 1 / 31</div>
+    <div class="controls">
+        <button class="btn" id="prevBtn">← Anterior</button>
+        <button class="btn" id="nextBtn">Siguiente →</button>
+    </div>
+    <div class="progress-bar" id="progress"></div>
+
+</div> <!-- FIN DEL CONTENEDOR SLIDER-CONTAINER -->
+
+<script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const counter = document.getElementById('counter');
+    const progress = document.getElementById('progress');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    function updateSlides() {
+        slides.forEach((slide, index) => {
+            if (index === currentSlide) {
+                slide.classList.add('active');
+            } else {
+                slide.classList.remove('active');
+            }
+        });
+        
+        counter.innerText = `Diapositiva ${currentSlide + 1} / ${slides.length}`;
+        const progressPercent = ((currentSlide + 1) / slides.length) * 100;
+        progress.style.width = `${progressPercent}%`;
+    }
+
+    function moveNext() {
+        if (currentSlide < slides.length - 1) {
+            currentSlide++;
+            updateSlides();
+        }
+    }
+
+    function movePrev() {
+        if (currentSlide > 0) {
+            currentSlide--;
+            updateSlides();
+        }
+    }
+
+    nextBtn.addEventListener('click', moveNext);
+    prevBtn.addEventListener('click', movePrev);
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowRight' || event.key === ' ') {
+            event.preventDefault();
+            moveNext();
+        } else if (event.key === 'ArrowLeft') {
+            event.preventDefault();
+            movePrev();
+        }
+    });
+
+    updateSlides();
+</script>
+</body>
+</html>
