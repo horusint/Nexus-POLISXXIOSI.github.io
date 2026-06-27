@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ficha Digital - Desafío CTF Junior</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --container-bg: #161b22;
+            --border-color: #30363d;
+            --accent-color: #58a6ff;
+            --text-color: #c9d1d9;
+            --success-color: #238636;
+            --danger-color: #da3633;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .ctf-container {
+            background-color: var(--container-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            width: 100%;
+            max-width: 650px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+
+        h1 {
+            color: var(--accent-color);
+            font-size: 1.8rem;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 0.95rem;
+            color: #8b949e;
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            color: #fff;
+            margin-bottom: 15px;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+            color: #8b949e;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            background-color: #21262d;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px 12px;
+            color: #fff;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        input[type="text"].flag-input {
+            font-family: monospace;
+            color: #ff7b72;
+            letter-spacing: 0.5px;
+        }
+
+        .flag-box {
+            background-color: #0d1117;
+            border: 1px dashed var(--border-color);
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 25px;
+        }
+
+        .btn-submit {
+            width: 100%;
+            background-color: var(--success-color);
+            color: #fff;
+            border: 1px solid rgba(240,246,252,0.1);
+            border-radius: 6px;
+            padding: 14px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            text-transform: uppercase;
+        }
+
+        .btn-submit:hover {
+            background-color: #2ea44f;
+        }
+
+        /* Modal / Resultado */
+        .result-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.85);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .result-box {
+            background-color: var(--container-bg);
+            border: 2px solid var(--accent-color);
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .score {
+            font-size: 3.5rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            margin: 20px 0;
+            font-family: monospace;
+        }
+
+        .btn-close {
+            background-color: #30363d;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        
+        .btn-close:hover { background-color: #444c56; }
+    </style>
+</head>
+<body>
+
+<div class="ctf-container">
+    <h1>⚔️ Panel de Escuadrón CTF</h1>
+    <div class="subtitle">Ingresen los datos recolectados mediante su consola de comandos</div>
+
+    <form id="ctfForm">
+        <!-- DATOS DEL EQUIPO -->
+        <div class="form-group">
+            <label for="teamName">Nombre del Clan Hacker / Equipo</label>
+            <input type="text" id="teamName" required placeholder="Ej: CyberVikings">
+        </div>
+        <div class="form-group">
+            <label for="teamMembers">Integrantes (Nombres separados por comas)</label>
+            <input type="text" id="teamMembers" required placeholder="Ej: Lucas, Sofía, Marcos">
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 25px 0;">
+
+        <!-- FLAG 1 -->
+        <div class="flag-box">
+            <div class="section-title">🚩 Misión 1: El Fantasma Local</div>
+            <div class="form-group">
+                <label for="step1">IP de la Puerta de Enlace (Gateway)</label>
+                <input type="text" id="step1" required placeholder="Ej: 192.168.1.1">
+            </div>
+            <div class="form-group">
+                <label for="flag1">Código FLAG Completo</label>
+                <input type="text" id="flag1" class="flag-input" required placeholder="FLAG{comando_IP}">
+            </div>
+        </div>
+
+        <!-- FLAG 2 -->
+        <div class="flag-box">
+            <div class="section-title">🚩 Misión 2: El Espía en el Puerto</div>
+            <div class="form-group">
+                <label for="flag2">Número de Puerto Seguro Descubierto</label>
+                <input type="text" id="flag2" class="flag-input" required placeholder="FLAG{Número}">
+            </div>
+        </div>
+
+        <!-- FLAG 3 -->
+        <div class="flag-box">
+            <div class="section-title">🚩 Misión 3: El Traductor Enmascarado</div>
+            <div class="form-group">
+                <label for="flag3">Dirección IP de wikipedia.org encontrada</label>
+                <input type="text" id="flag3" class="flag-input" required placeholder="FLAG{IP_De_Wikipedia}">
+            </div>
+        </div>
+
+        <button type="submit" class="btn-submit">Enviar Respuestas e Interrogar</button>
+    </form>
+</div>
+
+<!-- VENTANA EMERGENTE DE RESULTADOS (MODAL) -->
+<div class="result-overlay" id="resultOverlay">
+    <div class="result-box">
+        <h2 id="resultTitle">¡Transmisión Completada!</h2>
+        <p style="margin-top: 10px; color: #8b949e;">Puntaje Total Obtenido:</p>
+        <div class="score" id="totalScore">0 / 100</div>
+        <p id="resultFeedback" style="margin-bottom: 25px; line-height: 1.5;"></p>
+        <button class="btn-close" onclick="closeModal()">Modificar Respuestas</button>
+    </div>
+</div>
+
+<script>
+    // Configura aquí las soluciones reales antes de tu clase:
+    const REALS = {
+        gatewayIP: "192.168.1.1", // <-- Cambia esta IP por la real del aula
+        flag1: "FLAG{ping_192.168.1.1}", // <-- Cambia la IP aquí dentro también si varía
+        flag2: "FLAG{443}",
+        flag3: "FLAG{195.200.68.224}" // <-- Cambia si nslookup les da otra IPv4 en tu red
+    };
+
+    document.getElementById('ctfForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        let score = 0;
+        let logFeedback = "";
+
+        // Validar FLAG 1
+        const inputFlag1 = document.getElementById('flag1').value.trim();
+        if(inputFlag1 === REALS.flag1) {
+            score += 30;
+        } else {
+            logFeedback += "• Misión 1 errónea o formato incorrecto.<br>";
+        }
+
+        // Validar FLAG 2
+        const inputFlag2 = document.getElementById('flag2').value.trim();
+        if(inputFlag2 === REALS.flag2) {
+            score += 35;
+        } else {
+            logFeedback += "• Misión 2: El puerto de Capa 4 no es el correcto.<br>";
+        }
+
+        // Validar FLAG 3
+        const inputFlag3 = document.getElementById('flag3').value.trim();
+        if(inputFlag3 === REALS.flag3) {
+            score += 35;
+        } else {
+            logFeedback += "• Misión 3: IP de la consulta DNS inválida.<br>";
+        }
+
+        // Configurar mensaje de feedback
+        const feedbackEl = document.getElementById('resultFeedback');
+        const titleEl = document.getElementById('resultTitle');
+        const teamName = document.getElementById('teamName').value;
+
+        if (score === 100) {
+            titleEl.innerText = "¡SISTEMA HACKEADO EXITOSAMENTE!";
+            titleEl.style.color = "#58a6ff";
+            feedbackEl.innerHTML = `Felicitaciones Clan <strong>${teamName}</strong>. Han descifrado todas las vulnerabilidades de la infraestructura de red. ¡Llamen al instructor de inmediato!`;
+        } else {
+            titleEl.innerText = "ACCESO PARCIAL / INCORRECTO";
+            titleEl.style.color = "#da3633";
+            feedbackEl.innerHTML = `Clan <strong>${teamName}</strong>, el sistema de defensa bloqueó la transmisión debido a los siguientes fallos:<br><br>${logFeedback}`;
+        }
+
+        // Mostrar Puntaje
+        document.getElementById('totalScore').innerText = `${score} / 100`;
+        document.getElementById('resultOverlay').style.display = 'flex';
+    });
+
+    function closeModal() {
+        document.getElementById('resultOverlay').style.display = 'none';
+    }
+</script>
+</body>
+</html>
+
