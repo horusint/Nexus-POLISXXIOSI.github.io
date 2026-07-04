@@ -1,0 +1,64 @@
+================================================================================
+                    NEXUS CYBER ACADEMY — CYBER-OPS LEVEL 2
+                          STUDENT CORE CHEAT SHEET
+================================================================================
+
+[+] RECONOCIMIENTO DE REDES & COORDENADAS LÓGICAS
+--------------------------------------------------------------------------------
+• En entornos Windows (CMD / PowerShell):
+  > ipconfig                    -> Muestra tu IPv4 Privada local.
+  > ipconfig /flushdns          -> Desinfecta la caché DNS de redirecciones.
+
+• En entornos Linux (Terminal Bash):
+  > ip addr                     -> Muestra interfaces de red e IPs activas.
+  > resolvectl flush-caches     -> Purga de raíz la caché DNS del sistema.
+
+
+[+] AUDITORÍA DE CONSOLA Y DETECCIÓN DE INTRUSOS
+--------------------------------------------------------------------------------
+• Escenario Real: Troyanos / Conexiones ocultas hacia servidores de control C2:
+  > Windows:  netstat -ano | findstr ESTABLISHED
+  > Linux:    ss -antp  o  netstat -tunp
+  (* Pista: El último número es el PID. Puedes matar el virus con 'taskkill /PID [Num] /F')
+
+• Escenario Real: Ataques Man-in-the-Middle (Espionaje por clonación ARP):
+  > Ambos:    arp -a
+  (* Alerta Forense: Si la IP del Router y otra IP tienen la misma MAC física,
+     tus datos están siendo interceptados).
+
+• Escenario Real: Procesamiento Forense de Logs y Fuerza Bruta:
+  > Windows:  Get-Content access_log.txt | Select-String "SUCCESS"
+  > Linux:    grep "SUCCESS" access_log.txt
+
+
+[+] ANÁLISIS DE PAQUETES DE RED (WIRESHARK)
+--------------------------------------------------------------------------------
+• http                      -> Aísla el tráfico web (Capa 7).
+• http.request.method == "POST" -> Filtra el envío de formularios y contraseñas.
+• ip.addr == 185.220.101.5  -> Filtra todo el tráfico entrante/saliente de esa IP.
+• dns.flags.response == 1   -> Analiza solo las respuestas de servidores de nombres.
+
+* TIP OPERATIVO: Expande las capas inferiores en el panel de detalles para ver los
+  datos desglosados según el Modelo OSI.
+
+
+[+] MANUAL DE VECTORES DE EXPLOTACIÓN (CTF JUICE SHOP)
+--------------------------------------------------------------------------------
+• Inyección SQL (Evasión perimetral de inicio de sesión):
+  > Bypass SQLi: ' OR 1=1--
+  (* Rompe la lógica de la base de datos inyectando una condición siempre verdadera).
+
+• Path Traversal (Escalado de directorios internos del servidor):
+  > Sintaxis de escape en URLs: ../../nombre_del_archivo_secreto
+  (* Fuerza al servidor web a salir de la carpeta pública hacia carpetas raíz protegidas).
+
+%2500.md //Bits Null
+
+• Manipulación DOM (Modificación de variables de negocio del lado del cliente):
+  > Presiona F12 -> Selecciona el elemento HTML del input -> Cambia 'value="1"'
+    por un valor negativo (Ej: -100).
+  (* Rompe el cálculo matemático del servidor forzando un saldo de dinero a favor).
+
+================================================================================
+       CONFIDENCIALIDAD (C) • INTEGRIDAD (I) • DISPONIBILIDAD (D) — ISO 27001
+================================================================================
